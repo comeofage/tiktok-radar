@@ -1,0 +1,23 @@
+[
+  {
+    "date": "2026-10-04",
+    "total_count": 704,
+    "shop_count": 616,
+    "max_ratio": 1129.9,
+    "top_view": "2.5M"
+  },
+  {
+    "date": "2026-10-03",
+    "total_count": 589,
+    "shop_count": 506,
+    "max_ratio": 8783.8,
+    "top_view": "2.0M"
+  },
+  {
+    "date": "2026-10-02",
+    "total_count": 590,
+    "shop_count": 494,
+    "max_ratio": 8843.5,
+    "top_view": "1.9M"
+  }
+]

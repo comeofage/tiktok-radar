@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🔥 TikTok Breakout Radar</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      background-color: #0b0f17;
+    }
+    .tap-active:active {
+      transform: scale(0.97);
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen pb-20 select-none md:select-auto">
+
+  <!-- Header cố định -->
+  <header class="sticky top-0 z-40 bg-[#0b0f17]/90 backdrop-blur-md border-b border-slate-800/80 px-4 py-3">
+    <div class="max-w-4xl mx-auto flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 flex items-center justify-center shadow-lg shadow-rose-500/20 font-black text-white text-lg">
+          ⚡
+        </div>
+        <div>
+          <h1 class="text-base font-extrabold tracking-tight text-white flex items-center gap-1.5">
+            Breakout Radar
+            <span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30">24/7 Cloud</span>
+          </h1>
+          <p class="text-[11px] text-slate-400" id="headerSub">Đang nạp dữ liệu radar...</p>
+        </div>
+      </div>
+      
+      <!-- Date selector -->
+      <select id="dateSelect" onchange="onDateChange()" class="bg-slate-800 border border-slate-700 text-xs font-semibold rounded-lg px-2.5 py-1.5 text-slate-200 outline-none focus:border-rose-500">
+      </select>
+    </div>
+
+    <!-- Thanh tìm kiếm & bộ lọc -->
+    <div class="max-w-4xl mx-auto mt-3 flex flex-col gap-2">
+      <div class="relative">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500 text-xs">🔍</span>
+        <input type="text" id="searchInput" oninput="debounceFilter()" placeholder="Tìm kênh @handle, tên sản phẩm, caption..." class="w-full bg-slate-900/90 border border-slate-800 text-xs rounded-xl pl-8 pr-8 py-2.5 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-rose-500 transition-all">
+        <button id="clearSearch" onclick="clearInput()" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white text-xs">✕</button>
+      </div>
+
+      <!-- Filter tabs & Sort -->
+      <div class="flex items-center justify-between gap-1 overflow-x-auto no-scrollbar py-0.5">
+        <div class="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800/80 text-[11px] font-semibold flex-shrink-0">
+          <button id="tabShop" onclick="setShopFilter(true)" class="px-2.5 py-1 rounded-lg bg-rose-500 text-white shadow font-bold transition">
+            🛒 Có Giỏ Hàng <span id="shopCountBadge" class="ml-0.5 opacity-80">(0)</span>
+          </button>
+          <button id="tabAll" onclick="setShopFilter(false)" class="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition">
+            Tất cả <span id="allCountBadge" class="ml-0.5 opacity-60">(0)</span>
+          </button>
+        </div>
+
+        <!-- Sort -->
+        <div class="flex items-center gap-1 text-[11px] font-medium text-slate-400 flex-shrink-0">
+          <span>Xếp:</span>
+          <select id="sortBy" onchange="applyFilterAndSort()" class="bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-2 py-1 text-[11px] outline-none">
+            <option value="view">View cao nhất</option>
+            <option value="ratio">Tỷ lệ X cao nhất</option>
+            <option value="date">Mới đăng nhất</option>
+            <option value="follow_asc">Acc nhỏ nổ to (Follow ít)</option>
+            <option value="follow_desc">Follower nhiều nhất</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Danh sách Cards -->
+  <main class="max-w-4xl mx-auto px-3.5 pt-3">
+    <!-- Thống kê nhanh banner -->
+    <div id="statBanner" class="mb-3 grid grid-cols-3 gap-2">
+      <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl p-2.5 text-center">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Giỏ Hàng</span>
+        <div id="statShop" class="text-base font-extrabold text-rose-400">—</div>
+      </div>
+      <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl p-2.5 text-center">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Đột Biến Max</span>
+        <div id="statMaxX" class="text-base font-extrabold text-amber-400">—</div>
+      </div>
+      <div class="bg-slate-900/80 border border-slate-800/80 rounded-xl p-2.5 text-center">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Top View</span>
+        <div id="statTopView" class="text-base font-extrabold text-emerald-400">—</div>
+      </div>
+    </div>
+
+    <!-- Container nạp video cards -->
+    <div id="videoList" class="flex flex-col gap-2.5">
+      <div class="text-center py-16 text-slate-500 text-xs animate-pulse">
+        Đang tải danh sách video...
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal xem Embed video trực tiếp trên web -->
+  <div id="embedModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-3">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm overflow-hidden flex flex-col shadow-2xl">
+      <div class="flex items-center justify-between px-4 py-2.5 border-b border-slate-800 bg-slate-900/80">
+        <span class="text-xs font-bold text-white flex items-center gap-1.5" id="modalTitle">Xem Video</span>
+        <button onclick="closeModal()" class="w-7 h-7 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center text-xs">✕</button>
+      </div>
+      <div class="relative w-full aspect-[9/16] max-h-[70vh] bg-black">
+        <iframe id="embedFrame" src="" class="w-full h-full border-0" allowfullscreen></iframe>
+      </div>
+      <div class="p-3 bg-slate-900 flex justify-between gap-2">
+        <a id="modalTiktokBtn" href="#" target="_blank" class="flex-1 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white text-center font-bold text-xs shadow">
+          ▶ Mở trong TikTok App
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let rawItems = [];
+    let datesMeta = [];
+    let onlyShop = true;
+    let searchTimer = null;
+
+    async function init() {
+      try {
+        const res = await fetch('data/dates.json');
+        datesMeta = await res.json();
+        
+        const dSel = document.getElementById('dateSelect');
+        dSel.innerHTML = datesMeta.map(d => `<option value="${d.date}">${d.date}</option>`).join('');
+        
+        if (datesMeta.length > 0) {
+          await loadDate(datesMeta[0].date);
+        }
+      } catch (err) {
+        console.error(err);
+        document.getElementById('videoList').innerHTML = `
+          <div class="text-center py-12 text-rose-400 text-xs">
+            Lỗi nạp danh sách ngày. Hãy kiểm tra kết nối mạng hoặc đường dẫn data/dates.json.
+          </div>
+        `;
+      }
+    }
+
+    async function loadDate(dateStr) {
+      try {
+        document.getElementById('videoList').innerHTML = `
+          <div class="text-center py-16 text-slate-500 text-xs animate-pulse">
+            Đang tải dữ liệu ngày ${dateStr}...
+          </div>
+        `;
+        const res = await fetch(`data/${dateStr}.json`);
+        rawItems = await res.json();
+        applyFilterAndSort();
+      } catch (err) {
+        console.error(err);
+        document.getElementById('videoList').innerHTML = `
+          <div class="text-center py-12 text-rose-400 text-xs">
+            Không thể tải dữ liệu cho ngày ${dateStr}.
+          </div>
+        `;
+      }
+    }
+
+    function onDateChange() {
+      const selected = document.getElementById('dateSelect').value;
+      loadDate(selected);
+    }
+
+    function debounceFilter() {
+      clearTimeout(searchTimer);
+      const val = document.getElementById('searchInput').value.trim();
+      document.getElementById('clearSearch').style.display = val ? 'flex' : 'none';
+      searchTimer = setTimeout(applyFilterAndSort, 150);
+    }
+
+    function clearInput() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('clearSearch').style.display = 'none';
+      applyFilterAndSort();
+    }
+
+    function setShopFilter(val) {
+      onlyShop = val;
+      const tShop = document.getElementById('tabShop');
+      const tAll = document.getElementById('tabAll');
+      if (onlyShop) {
+        tShop.className = 'px-2.5 py-1 rounded-lg bg-rose-500 text-white shadow font-bold transition';
+        tAll.className = 'px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition';
+      } else {
+        tAll.className = 'px-2.5 py-1 rounded-lg bg-slate-700 text-white shadow font-bold transition';
+        tShop.className = 'px-2.5 py-1 rounded-lg text-slate-400 hover:text-white transition';
+      }
+      applyFilterAndSort();
+    }
+
+    function applyFilterAndSort() {
+      const search = document.getElementById('searchInput').value.trim().toLowerCase();
+      const sortBy = document.getElementById('sortBy').value;
+      const curDate = document.getElementById('dateSelect').value;
+
+      let filtered = rawItems.filter(item => {
+        if (onlyShop && item.has_shop !== 1) return false;
+        if (search) {
+          const matchHandle = (item.handle || '').toLowerCase().includes(search);
+          const matchTitle = (item.title || '').toLowerCase().includes(search);
+          const matchNick = (item.nickname || '').toLowerCase().includes(search);
+          const matchProduct = (item.product_name || '').toLowerCase().includes(search);
+          if (!matchHandle && !matchTitle && !matchNick && !matchProduct) return false;
+        }
+        return true;
+      });
+
+      // Sắp xếp
+      if (sortBy === 'ratio') {
+        filtered.sort((a, b) => (b.ratio_x || 0) - (a.ratio_x || 0));
+      } else if (sortBy === 'date') {
+        filtered.sort((a, b) => (b.published_at || 0) - (a.published_at || 0));
+      } else if (sortBy === 'follow_asc') {
+        filtered.sort((a, b) => {
+          const fa = a.follower_count > 0 ? a.follower_count : 999999999;
+          const fb = b.follower_count > 0 ? b.follower_count : 999999999;
+          return fa - fb;
+        });
+      } else if (sortBy === 'follow_desc') {
+        filtered.sort((a, b) => (b.follower_count || 0) - (a.follower_count || 0));
+      } else {
+        // Mặc định view cao nhất
+        filtered.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+      }
+
+      // Thống kê nhanh
+      const totalAll = rawItems.length;
+      const totalShops = rawItems.filter(x => x.has_shop === 1).length;
+      document.getElementById('shopCountBadge').innerText = `(${totalShops})`;
+      document.getElementById('allCountBadge').innerText = `(${totalAll})`;
+      document.getElementById('headerSub').innerText = `${filtered.length} video · Ngày ${curDate}`;
+
+      document.getElementById('statShop').innerText = `${totalShops}/${totalAll}`;
+      if (filtered.length > 0) {
+        const maxX = Math.max(...filtered.map(x => x.ratio_x || 0));
+        document.getElementById('statMaxX').innerText = maxX ? `${maxX.toFixed(0)}×` : '—';
+        document.getElementById('statTopView').innerText = filtered[0].view_str;
+      } else {
+        document.getElementById('statMaxX').innerText = '—';
+        document.getElementById('statTopView').innerText = '—';
+      }
+
+      renderCards(filtered);
+    }
+
+    function renderCards(items) {
+      const list = document.getElementById('videoList');
+      if (!items || items.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-16 bg-slate-900/50 rounded-2xl border border-slate-800/60 p-6">
+            <span class="text-3xl">🔍</span>
+            <p class="mt-2 text-xs font-medium text-slate-400">Không tìm thấy video đột biến nào phù hợp.</p>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = items.map((item, idx) => {
+        const hasShop = item.has_shop === 1;
+        const shopBadge = hasShop 
+          ? `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">🛒 Shop</span>`
+          : `<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-800 text-slate-500 text-[10px]">No Shop</span>`;
+
+        const deltaTxt = item.delta_24h > 0 ? `+${(item.delta_24h/1000).toFixed(0)}k` : '';
+
+        return `
+          <div class="bg-slate-900/90 hover:bg-slate-900 border border-slate-800/80 rounded-2xl p-3 flex flex-col gap-2 shadow-sm transition">
+            <!-- Row 1: STT, Channel, Follower, Badges -->
+            <div class="flex items-center justify-between gap-1.5">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="text-xs font-black text-slate-500 w-5 flex-shrink-0">#${idx + 1}</span>
+                <a href="https://www.tiktok.com/@${item.handle}" target="_blank" class="text-xs font-bold text-slate-100 hover:text-rose-400 truncate flex items-baseline gap-1">
+                  ${item.nickname ? item.nickname : '@' + item.handle}
+                  ${item.nickname ? `<span class="text-[10px] text-slate-500 font-normal">(@${item.handle})</span>` : ''}
+                </a>
+                <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700/60 text-slate-300 text-[10px] font-semibold flex-shrink-0" title="Số Follower">
+                  👤 ${item.follower_str}
+                </span>
+                ${shopBadge}
+              </div>
+              <span class="text-[10px] font-medium text-slate-500 flex-shrink-0">🕒 ${item.pub_str}</span>
+            </div>
+
+            <!-- Row 2: Title / Product Name -->
+            <div>
+              <p class="text-[13px] font-semibold text-white leading-snug line-clamp-2">
+                ${item.title || '(Không tiêu đề)'}
+              </p>
+            </div>
+
+            <!-- Row 3: Metrics & Actions -->
+            <div class="pt-2 border-t border-slate-800/70 flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5">
+                <div class="px-2 py-1 rounded-lg bg-rose-500/15 border border-rose-500/25 flex items-baseline gap-1">
+                  <span class="text-xs font-extrabold text-rose-400">${item.view_str}</span>
+                  <span class="text-[9px] uppercase font-semibold text-rose-300">view</span>
+                  ${deltaTxt ? `<span class="text-[9px] text-emerald-400 font-bold ml-0.5">${deltaTxt}</span>` : ''}
+                </div>
+                <div class="px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-500/25 flex items-baseline gap-0.5">
+                  <span class="text-xs font-extrabold text-amber-400">${item.ratio_str}</span>
+                  <span class="text-[9px] text-amber-300/80">bật</span>
+                </div>
+              </div>
+
+              <!-- Action buttons -->
+              <div class="flex items-center gap-1.5">
+                <button onclick="openEmbed('${item.embed}', '@${item.handle}', '${item.url}')" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-bold tap-active transition">
+                  👁 Xem
+                </button>
+                <a href="${item.url}" target="_blank" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white text-[11px] font-extrabold shadow shadow-rose-500/20 tap-active transition flex items-center gap-1">
+                  ▶ Mở App
+                </a>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openEmbed(embedUrl, handle, tiktokUrl) {
+      document.getElementById('modalTitle').innerText = 'Video của ' + handle;
+      document.getElementById('embedFrame').src = embedUrl;
+      document.getElementById('modalTiktokBtn').href = tiktokUrl;
+      document.getElementById('embedModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('embedFrame').src = '';
+      document.getElementById('embedModal').classList.add('hidden');
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
