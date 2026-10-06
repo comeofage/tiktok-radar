@@ -1,5 +1,19 @@
 [
   {
+    "date": "2026-10-06",
+    "total_count": 405,
+    "shop_count": 356,
+    "max_ratio": 1979.6,
+    "top_view": "3.2M"
+  },
+  {
+    "date": "2026-10-05",
+    "total_count": 443,
+    "shop_count": 368,
+    "max_ratio": 1189.8,
+    "top_view": "3.0M"
+  },
+  {
     "date": "2026-10-04",
     "total_count": 705,
     "shop_count": 617,
